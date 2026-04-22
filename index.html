@@ -1,183 +1,52 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>M&L Dry Market</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css" />
+  <title>Dry Market Kiosk</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<!-- ═══════════════════════════════════ KIOSK VIEW ═══════════════════════════════════ -->
-<div id="kiosk-view">
+<div class="header">
+  <h2>🥬 Dry Market Kiosk</h2>
+  <button onclick="toggleAdmin()">Admin</button>
+</div>
 
-  <header class="kiosk-header">
-    <div class="header-left">
-      <span class="store-emoji">🧅</span>
-      <div>
-        <h1 class="store-name">M&L Dry Market</h1>
-        <p class="store-sub">Sariwa · Mura · Araw-araw</p>
-      </div>
-    </div>
-    <button class="admin-btn" onclick="openAdminLogin()">⚙ Admin</button>
-  </header>
+<!-- KIOSK -->
+<div id="kiosk">
+  <div id="products"></div>
 
-  <div class="kiosk-body">
+  <div class="cart">
+    <h3>🛒 Basket</h3>
+    <div id="cartItems"></div>
+    <h3>Total: ₱<span id="total">0</span></h3>
 
-    <!-- MENU PANEL -->
-    <div class="menu-panel">
-      <div class="section-label">📦 Available Items</div>
-      <div id="product-grid" class="product-grid">
-        <!-- Products injected by JS -->
-        <div class="loading-spinner">Loading products…</div>
-      </div>
-    </div>
-
-    <!-- CART PANEL -->
-    <div class="cart-panel">
-      <div class="section-label">🛒 Your Basket</div>
-      <div id="cart-items" class="cart-items">
-        <div class="empty-cart">
-          <span>🥬</span>
-          <p>Add items to your basket</p>
-        </div>
-      </div>
-      <div class="cart-footer">
-        <div class="cart-total-row">
-          <span>TOTAL</span>
-          <span id="cart-total">₱0.00</span>
-        </div>
-        <button class="order-btn" id="order-btn" onclick="openOrderModal()" disabled>
-          Place Order
-        </button>
-        <button class="clear-btn" onclick="clearCart()">Clear Basket</button>
-      </div>
-    </div>
-
+    <input id="customerName" placeholder="Name (optional)">
+    <button onclick="checkout()">ORDER</button>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════ ORDER MODAL ═══════════════════════════════════ -->
-<div id="order-modal" class="modal-overlay" style="display:none">
-  <div class="modal-box">
-    <h2 class="modal-title">🧾 Order Summary</h2>
-    <div id="receipt-items" class="receipt-items"></div>
-    <div class="receipt-total-row">
-      <span>TOTAL DUE</span>
-      <span id="receipt-total"></span>
-    </div>
-    <div class="receipt-name-row">
-      <label for="customer-name">Customer Name <span class="optional">(optional)</span></label>
-      <input id="customer-name" type="text" placeholder="e.g. Juan dela Cruz" maxlength="50" />
-    </div>
-    <div class="modal-actions">
-      <button class="confirm-btn" onclick="confirmOrder()">✅ Confirm Order</button>
-      <button class="cancel-btn" onclick="closeOrderModal()">✖ Cancel</button>
-    </div>
+<!-- ADMIN -->
+<div id="admin" class="hidden">
+  <h2>Admin Panel</h2>
+
+  <h3>Update Prices</h3>
+  <div id="adminProducts"></div>
+
+  <h3>Past Orders</h3>
+  <div id="orders"></div>
+
+  <button onclick="toggleAdmin()">Back</button>
+</div>
+
+<!-- RECEIPT MODAL -->
+<div id="receiptModal" class="modal hidden">
+  <div class="modal-content">
+    <h2>Receipt</h2>
+    <div id="receipt"></div>
+    <button onclick="closeReceipt()">Close</button>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════ SUCCESS MODAL ═══════════════════════════════════ -->
-<div id="success-modal" class="modal-overlay" style="display:none">
-  <div class="modal-box success-box">
-    <div class="success-icon">✅</div>
-    <h2>Order Placed!</h2>
-    <p id="success-msg"></p>
-    <button class="confirm-btn" onclick="closeSuccessModal()">New Order</button>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════ ADMIN LOGIN ═══════════════════════════════════ -->
-<div id="admin-login-modal" class="modal-overlay" style="display:none">
-  <div class="modal-box">
-    <h2 class="modal-title">🔒 Admin Access</h2>
-    <div class="receipt-name-row">
-      <label>Password</label>
-      <input id="admin-password-input" type="password" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')checkAdminLogin()" />
-    </div>
-    <p id="login-error" style="color:#e74c3c;font-size:0.85rem;margin-top:6px;display:none">Wrong password.</p>
-    <div class="modal-actions">
-      <button class="confirm-btn" onclick="checkAdminLogin()">Enter</button>
-      <button class="cancel-btn" onclick="closeAdminLogin()">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════ ADMIN PANEL ═══════════════════════════════════ -->
-<div id="admin-view" style="display:none">
-
-  <header class="admin-header">
-    <div class="header-left">
-      <span class="store-emoji">⚙️</span>
-      <div>
-        <h1 class="store-name">Admin Panel</h1>
-        <p class="store-sub">Manage Inventory & Orders</p>
-      </div>
-    </div>
-    <button class="admin-btn" onclick="exitAdmin()">← Back to Kiosk</button>
-  </header>
-
-  <div class="admin-tabs">
-    <button class="tab-btn active" onclick="switchTab('inventory')">📦 Inventory</button>
-    <button class="tab-btn" onclick="switchTab('orders')">📋 Past Orders</button>
-  </div>
-
-  <!-- INVENTORY TAB -->
-  <div id="tab-inventory" class="admin-section">
-    <div class="admin-section-header">
-      <h3>Products</h3>
-      <button class="add-product-btn" onclick="openAddProduct()">+ Add Product</button>
-    </div>
-    <div id="admin-product-list" class="admin-product-list">
-      <div class="loading-spinner">Loading…</div>
-    </div>
-  </div>
-
-  <!-- ORDERS TAB -->
-  <div id="tab-orders" class="admin-section" style="display:none">
-    <div class="admin-section-header">
-      <h3>Past Orders</h3>
-      <span id="orders-count" class="orders-badge"></span>
-    </div>
-    <div id="admin-orders-list" class="admin-orders-list">
-      <div class="loading-spinner">Loading…</div>
-    </div>
-  </div>
-
-</div>
-
-<!-- ═══════════════════════════════════ ADD/EDIT PRODUCT MODAL ═══════════════════════════════════ -->
-<div id="product-modal" class="modal-overlay" style="display:none">
-  <div class="modal-box">
-    <h2 class="modal-title" id="product-modal-title">Add Product</h2>
-    <input type="hidden" id="edit-product-id" />
-    <div class="form-group">
-      <label>Product Name</label>
-      <input id="product-name-input" type="text" placeholder="e.g. Garlic" maxlength="40" />
-    </div>
-    <div class="form-group">
-      <label>Unit Label</label>
-      <input id="product-unit-input" type="text" placeholder="e.g. per kilo, per bundle" maxlength="20" />
-    </div>
-    <div class="form-group">
-      <label>Price (₱)</label>
-      <input id="product-price-input" type="number" placeholder="e.g. 80" min="0" step="0.01" />
-    </div>
-    <div class="form-group">
-      <label>Emoji Icon</label>
-      <input id="product-emoji-input" type="text" placeholder="e.g. 🧄" maxlength="4" />
-    </div>
-    <p id="product-form-error" style="color:#e74c3c;font-size:0.85rem;display:none">Please fill all fields.</p>
-    <div class="modal-actions">
-      <button class="confirm-btn" onclick="saveProduct()">Save</button>
-      <button class="cancel-btn" onclick="closeProductModal()">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<!-- Firebase SDK -->
-<script type="module" src="app.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
