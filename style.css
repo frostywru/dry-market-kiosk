@@ -1,17 +1,25 @@
+/* RESET */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 body {
   font-family: Arial;
-  margin: 0;
   background: #f5f5f5;
 }
 
+/* HEADER */
 .header {
   display: flex;
   justify-content: space-between;
-  padding: 10px;
-  background: green;
+  padding: 12px;
+  background: #2e7d32;
   color: white;
 }
 
+/* GRID */
 #products, #adminProducts {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -19,46 +27,85 @@ body {
   padding: 10px;
 }
 
+/* CARD */
 .item {
   background: white;
-  padding: 10px;
+  padding: 12px;
   border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
 }
 
-button {
-  padding: 8px;
-  margin-top: 5px;
+/* INPUT */
+input {
   width: 100%;
+  padding: 8px;
+  margin-top: 6px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
 }
 
+/* BUTTONS (FIXED CLEAN STYLE) */
+button {
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  background: #4caf50;
+  color: white;
+  font-weight: bold;
+}
+
+/* QUICK BUTTONS */
+.quick-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.quick-buttons button {
+  background: #1976d2;
+  font-size: 12px;
+}
+
+/* CART */
 .cart {
   background: white;
-  padding: 10px;
+  padding: 12px;
   position: sticky;
   bottom: 0;
+  border-top: 2px solid #ddd;
 }
 
-.hidden {
-  display: none;
-}
-
+/* MODAL */
 .modal {
   position: fixed;
-  top:0; left:0;
-  width:100%;
-  height:100%;
-  background: rgba(0,0,0,0.5);
+  inset: 0;
+  background: rgba(0,0,0,0.6);
 }
 
 .modal-content {
   background: white;
   margin: 20% auto;
   padding: 20px;
-  width: 80%;
+  width: 85%;
+  border-radius: 10px;
 }
 
+/* HIDDEN */
+.hidden {
+  display: none;
+}
+
+/* RESPONSIVE */
 @media (min-width: 768px) {
   #products, #adminProducts {
     grid-template-columns: repeat(4, 1fr);
+  }
+
+  .modal-content {
+    width: 40%;
+    margin: 10% auto;
   }
 }
