@@ -1,6 +1,11 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
-  getFirestore, collection, addDoc, updateDoc, doc, onSnapshot
+  getFirestore,
+  collection,
+  addDoc,
+  updateDoc,
+  doc,
+  onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // ─── FIREBASE ─────────────────────────────
@@ -21,84 +26,68 @@ let cart = [];
 let products = [];
 
 /* =======================
-   LOAD PRODUCTS
+   LOAD PRODUCTS (UPDATED UI)
 ======================= */
 function loadProducts() {
   onSnapshot(collection(db, "products"), (snapshot) => {
     products = [];
 
-    document.getElementById("products").innerHTML = "";
-    document.getElementById("adminProducts").innerHTML = "";
+    const grid = document.getElementById("product-grid");
+    const cartUI = document.getElementById("cart-items");
+    const totalUI = document.getElementById("cart-total");
+
+    grid.innerHTML = "";
 
     snapshot.forEach((docSnap) => {
       let data = docSnap.data();
       data.id = docSnap.id;
       products.push(data);
 
-      // KIOSK
-      document.getElementById("products").innerHTML += `
+      grid.innerHTML += `
         <div class="item">
           <h3>${data.name}</h3>
           <p>₱${data.price} / kg</p>
 
-          <input type="number" step="0.01" id="w-${data.id}" placeholder="kg (e.g. 0.3)">
+          <!-- WEIGHT INPUT SYSTEM -->
+          <input type="number"
+                 step="0.01"
+                 id="w-${data.id}"
+                 placeholder="kg (e.g. 0.3)">
 
-          <div class="quick-buttons">
-            <button onclick="quickAdd('${data.id}', 0.1)">100g</button>
-            <button onclick="quickAdd('${data.id}', 0.25)">250g</button>
-            <button onclick="quickAdd('${data.id}', 0.5)">500g</button>
-            <button onclick="quickAdd('${data.id}', 1)">1kg</button>
-          </div>
-
-          <button onclick="addWeighted('${data.id}')">Add</button>
-        </div>
-      `;
-
-      // ADMIN
-      document.getElementById("adminProducts").innerHTML += `
-        <div class="item">
-          <h3>${data.name}</h3>
-          <input type="number" id="price-${data.id}" value="${data.price}">
-          <button onclick="updatePrice('${data.id}')">Update</button>
+          <button onclick="addToCart('${data.id}')">
+            Add to Basket
+          </button>
         </div>
       `;
     });
+
+    renderCart();
   });
 }
 
 /* =======================
-   QUICK ADD
+   ADD ITEM BY WEIGHT
 ======================= */
-window.quickAdd = (id, weight) => {
-  let p = products.find(x => x.id === id);
+window.addToCart = (id) => {
+  const product = products.find(p => p.id === id);
+  const input = document.getElementById("w-" + id);
 
-  cart.push({
-    name: p.name,
-    weight,
-    price: p.price * weight
-  });
-
-  renderCart();
-};
-
-/* =======================
-   MANUAL ADD
-======================= */
-window.addWeighted = (id) => {
-  let p = products.find(x => x.id === id);
-  let weight = parseFloat(document.getElementById("w-" + id).value);
+  const weight = parseFloat(input.value);
 
   if (!weight || weight <= 0) {
-    alert("Invalid weight");
+    alert("Please enter valid weight (e.g. 0.3 kg)");
     return;
   }
 
+  const price = product.price * weight;
+
   cart.push({
-    name: p.name,
+    name: product.name,
     weight,
-    price: p.price * weight
+    price
   });
 
+  input.value = ""; // reset input after add
   renderCart();
 };
 
@@ -106,31 +95,57 @@ window.addWeighted = (id) => {
    CART RENDER
 ======================= */
 function renderCart() {
+  const cartUI = document.getElementById("cart-items");
+  const totalUI = document.getElementById("cart-total");
+
   let html = "";
   let total = 0;
 
-  cart.forEach(i => {
-    html += `
-      <div>
-        ${i.name} - ${i.weight}kg = ₱${i.price.toFixed(2)}
+  if (cart.length === 0) {
+    cartUI.innerHTML = `
+      <div class="empty-cart">
+        <span>🥬</span>
+        <p>Add items to your basket</p>
       </div>
     `;
-    total += i.price;
+    totalUI.textContent = "₱0.00";
+    return;
+  }
+
+  cart.forEach(item => {
+    html += `
+      <div class="cart-item">
+        ${item.name} (${item.weight} kg)
+        <span>₱${item.price.toFixed(2)}</span>
+      </div>
+    `;
+    total += item.price;
   });
 
-  document.getElementById("cartItems").innerHTML = html;
-  document.getElementById("total").innerText = total.toFixed(2);
+  cartUI.innerHTML = html;
+  totalUI.textContent = `₱${total.toFixed(2)}`;
 }
 
 /* =======================
-   CHECKOUT (FIXED)
+   CLEAR CART
+======================= */
+window.clearCart = () => {
+  cart = [];
+  renderCart();
+};
+
+/* =======================
+   CHECKOUT
 ======================= */
 window.checkout = async () => {
-  if (cart.length === 0) return alert("Cart is empty");
+  if (cart.length === 0) {
+    alert("Cart is empty");
+    return;
+  }
 
-  let snapshotCart = [...cart]; // IMPORTANT FIX
-  let total = snapshotCart.reduce((a, b) => a + b.price, 0);
-  let name = document.getElementById("customerName").value;
+  const snapshotCart = [...cart];
+  const total = snapshotCart.reduce((a, b) => a + b.price, 0);
+  const name = document.getElementById("customer-name").value;
 
   await addDoc(collection(db, "orders"), {
     items: snapshotCart,
@@ -146,33 +161,47 @@ window.checkout = async () => {
 };
 
 /* =======================
-   RECEIPT (FIXED)
+   RECEIPT
 ======================= */
 function showReceipt(items, name, total) {
   let html = "";
 
   items.forEach(i => {
-    html += `<p>${i.name} (${i.weight}kg) - ₱${i.price.toFixed(2)}</p>`;
+    html += `
+      <p>${i.name} (${i.weight} kg) - ₱${i.price.toFixed(2)}</p>
+    `;
   });
 
-  document.getElementById("receipt").innerHTML = `
-    <p><b>Name:</b> ${name || "Guest"}</p>
-    ${html}
-    <h3>Total: ₱${total.toFixed(2)}</h3>
-  `;
+  document.getElementById("receipt-items").innerHTML = html;
+  document.getElementById("receipt-total").textContent = `₱${total.toFixed(2)}`;
 
-  document.getElementById("receiptModal").classList.remove("hidden");
+  document.getElementById("order-modal").style.display = "block";
 }
 
+/* =======================
+   MODAL CONTROLS
+======================= */
+window.openOrderModal = () => {
+  document.getElementById("order-modal").style.display = "block";
+};
+
+window.closeOrderModal = () => {
+  document.getElementById("order-modal").style.display = "none";
+};
+
+window.closeSuccessModal = () => {
+  document.getElementById("success-modal").style.display = "none";
+};
+
 window.closeReceipt = () => {
-  document.getElementById("receiptModal").classList.add("hidden");
+  document.getElementById("order-modal").style.display = "none";
 };
 
 /* =======================
-   ADMIN
+   ADMIN PRICE UPDATE
 ======================= */
 window.updatePrice = async (id) => {
-  let price = document.getElementById("price-" + id).value;
+  const price = document.getElementById("price-" + id).value;
 
   await updateDoc(doc(db, "products", id), {
     price: Number(price)
@@ -180,14 +209,14 @@ window.updatePrice = async (id) => {
 };
 
 /* =======================
-   ORDERS
+   LOAD ORDERS
 ======================= */
 function loadOrders() {
   onSnapshot(collection(db, "orders"), (snapshot) => {
     let html = "";
 
     snapshot.forEach(d => {
-      let o = d.data();
+      const o = d.data();
 
       html += `
         <div class="item">
@@ -202,11 +231,11 @@ function loadOrders() {
 }
 
 /* =======================
-   ADMIN TOGGLE
+   ADMIN TOGGLE (SAFE)
 ======================= */
 window.toggleAdmin = () => {
-  document.getElementById("kiosk").classList.toggle("hidden");
-  document.getElementById("admin").classList.toggle("hidden");
+  document.getElementById("kiosk-view").classList.toggle("hidden");
+  document.getElementById("admin-view").classList.toggle("hidden");
 };
 
 /* =======================
