@@ -76,13 +76,16 @@ window.addKgToCart = function(id) {
   updateCart();
 };
 
+// ─── FIXED CART UPDATE (IMPORTANT) ─────────────────────────
 function updateCart() {
   const el = document.getElementById("cart-items");
   const totalEl = document.getElementById("cart-total");
+  const orderBtn = document.getElementById("order-btn");
 
   if (!cart.length) {
-    el.innerHTML = `<div class="empty-cart">Empty</div>`;
+    el.innerHTML = `<div class="empty-cart"><span>🥬</span><p>Add items to your basket</p></div>`;
     totalEl.innerText = "₱0.00";
+    orderBtn.disabled = true;
     return;
   }
 
@@ -103,18 +106,99 @@ function updateCart() {
   }).join('');
 
   totalEl.innerText = "₱" + total.toFixed(2);
+  orderBtn.disabled = false;
 }
 
+// ─── 🧹 CLEAR BASKET (FIXED) ─────────────────────────
+window.clearCart = function () {
+  cart = [];
+  updateCart();
+};
+
+// ─── 🧾 ORDER MODAL ─────────────────────────
+window.openOrderModal = function () {
+  if (!cart.length) return;
+
+  const modal = document.getElementById("order-modal");
+  const receipt = document.getElementById("receipt-items");
+  const totalEl = document.getElementById("receipt-total");
+
+  let total = 0;
+
+  receipt.innerHTML = cart.map(item => {
+    const p = products.find(x => x.id === item.id);
+    const sub = p.price * item.qty;
+    total += sub;
+
+    return `
+      <div class="receipt-item-row">
+        <span>${p.emoji} ${p.name} × ${item.qty}kg</span>
+        <span>₱${sub.toFixed(2)}</span>
+      </div>
+    `;
+  }).join('');
+
+  totalEl.innerText = "₱" + total.toFixed(2);
+
+  modal.style.display = "flex";
+};
+
+window.closeOrderModal = function () {
+  document.getElementById("order-modal").style.display = "none";
+};
+
+// ─── ✅ CONFIRM ORDER (NOW WORKING) ─────────────────────────
+window.confirmOrder = async function () {
+  const name = document.getElementById("customer-name").value;
+
+  let total = 0;
+
+  const items = cart.map(item => {
+    const p = products.find(x => x.id === item.id);
+    const sub = p.price * item.qty;
+    total += sub;
+
+    return {
+      id: item.id,
+      name: p.name,
+      emoji: p.emoji,
+      qty: item.qty,
+      subtotal: sub.toFixed(2)
+    };
+  });
+
+  await addDoc(collection(db, "orders"), {
+    customer: name || "Walk-in",
+    items,
+    total: total.toFixed(2),
+    createdAt: serverTimestamp()
+  });
+
+  cart = [];
+  updateCart();
+  closeOrderModal();
+
+  document.getElementById("success-msg").innerText =
+    `Thank you ${name || "Customer"}!`;
+
+  document.getElementById("success-modal").style.display = "flex";
+};
+
+// ─── SUCCESS MODAL ─────────────────────────
+window.closeSuccessModal = function () {
+  document.getElementById("success-modal").style.display = "none";
+};
+
 // ─── ADMIN LOGIN ─────────────────────────
-window.openAdminLogin = function() {
+window.openAdminLogin = function () {
   document.getElementById("admin-login-modal").style.display = "flex";
 };
 
-window.closeAdminLogin = function() {
+window.closeAdminLogin = function () {
   document.getElementById("admin-login-modal").style.display = "none";
 };
 
-window.checkAdminLogin = function() {
+window.checkAdminLogin = function () {
   const pass = document.getElementById("admin-password-input").value;
 
   if (pass === ADMIN_PASSWORD) {
@@ -127,13 +211,13 @@ window.checkAdminLogin = function() {
   }
 };
 
-window.exitAdmin = function() {
+window.exitAdmin = function () {
   document.getElementById("admin-view").style.display = "none";
   document.getElementById("kiosk-view").style.display = "block";
 };
 
 // ─── TABS ─────────────────────────
-window.switchTab = function(tab) {
+window.switchTab = function (tab) {
   document.getElementById("tab-inventory").style.display = "none";
   document.getElementById("tab-orders").style.display = "none";
 
@@ -148,7 +232,7 @@ window.switchTab = function(tab) {
   }
 };
 
-// ─── ADMIN PRODUCTS (UPDATED WITH EDIT/DELETE) ─────────────────────────
+// ─── ADMIN PRODUCTS ─────────────────────────
 function renderAdminProducts() {
   const el = document.getElementById("admin-product-list");
 
@@ -172,7 +256,7 @@ function renderAdminProducts() {
 }
 
 // ─── EDIT PRODUCT ─────────────────────────
-window.editProduct = function(id) {
+window.editProduct = function (id) {
   const p = products.find(x => x.id === id);
 
   document.getElementById("edit-product-id").value = id;
@@ -185,13 +269,13 @@ window.editProduct = function(id) {
 };
 
 // ─── DELETE PRODUCT ─────────────────────────
-window.deleteProduct = async function(id) {
+window.deleteProduct = async function (id) {
   if (!confirm("Delete this product?")) return;
   await deleteDoc(doc(db, "products", id));
 };
 
-// ─── SAVE PRODUCT (CREATE + UPDATE) ─────────────────────────
-window.saveProduct = async function() {
+// ─── SAVE PRODUCT ─────────────────────────
+window.saveProduct = async function () {
   const id = document.getElementById("edit-product-id").value;
 
   const data = {
@@ -210,15 +294,9 @@ window.saveProduct = async function() {
   closeProductModal();
 };
 
-// ─── PRODUCT MODAL CLOSE ─────────────────────────
-window.closeProductModal = function() {
+// ─── MODAL CLOSE ─────────────────────────
+window.closeProductModal = function () {
   document.getElementById("product-modal").style.display = "none";
-
-  document.getElementById("edit-product-id").value = "";
-  document.getElementById("product-name-input").value = "";
-  document.getElementById("product-unit-input").value = "";
-  document.getElementById("product-price-input").value = "";
-  document.getElementById("product-emoji-input").value = "";
 };
 
 // ─── ORDERS ─────────────────────────
@@ -252,8 +330,8 @@ function listenOrders() {
   });
 }
 
-// ─── VIEW ORDER RECEIPT ─────────────────────────
-window.viewOrder = async function(id) {
+// ─── VIEW ORDER ─────────────────────────
+window.viewOrder = async function (id) {
   const snap = await getDocs(collection(db, "orders"));
   const orderDoc = snap.docs.find(d => d.id === id);
   const o = orderDoc.data();
