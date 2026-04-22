@@ -12,13 +12,13 @@ import {
 
 // ─── PASTE YOUR FIREBASE CONFIG HERE ─────────────────────────────────────────
 const firebaseConfig = {
-  apiKey: "AIzaSyCu1MwI5xji5I4qxy6gn3uKvVQa2O7kAj4",
-  authDomain: "dry-market-kiosk.firebaseapp.com",
-  projectId: "dry-market-kiosk",
-  storageBucket: "dry-market-kiosk.firebasestorage.app",
-  messagingSenderId: "492083582839",
-  appId: "1:492083582839:web:0f5484e0cf244944d2f372",
-  measurementId: "G-7CMLPS5BSD"
+  apiKey: "AIzaSyCg78WsoPWQ--dTunQQNjhJGf7cpO6wpP4",
+  authDomain: "dry-market-kiosk-f1e5e.firebaseapp.com",
+  projectId: "dry-market-kiosk-f1e5e",
+  storageBucket: "dry-market-kiosk-f1e5e.firebasestorage.app",
+  messagingSenderId: "145444548340",
+  appId: "1:145444548340:web:ee6b8cba9cd0f3df0ff8a1",
+  measurementId: "G-D2D2DFQE83"
 };
 // ─────────────────────────────────────────────────────────────────────────────
 
