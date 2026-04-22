@@ -26,29 +26,29 @@ let cart = [];
 let products = [];
 
 /* =======================
-   LOAD PRODUCTS (UPDATED UI)
+   LOAD PRODUCTS (FIXED UI)
 ======================= */
 function loadProducts() {
   onSnapshot(collection(db, "products"), (snapshot) => {
     products = [];
 
-    const grid = document.getElementById("product-grid");
-    const cartUI = document.getElementById("cart-items");
-    const totalUI = document.getElementById("cart-total");
+    const grid = document.getElementById("products");
+    const adminGrid = document.getElementById("adminProducts");
 
     grid.innerHTML = "";
+    adminGrid.innerHTML = "";
 
     snapshot.forEach((docSnap) => {
       let data = docSnap.data();
       data.id = docSnap.id;
       products.push(data);
 
+      // ─── KIOSK ITEM ─────────────────────
       grid.innerHTML += `
         <div class="item">
           <h3>${data.name}</h3>
           <p>₱${data.price} / kg</p>
 
-          <!-- WEIGHT INPUT SYSTEM -->
           <input type="number"
                  step="0.01"
                  id="w-${data.id}"
@@ -59,14 +59,27 @@ function loadProducts() {
           </button>
         </div>
       `;
-    });
 
-    renderCart();
+      // ─── ADMIN ITEM ─────────────────────
+      adminGrid.innerHTML += `
+        <div class="item">
+          <h3>${data.name}</h3>
+
+          <input type="number"
+                 id="price-${data.id}"
+                 value="${data.price}">
+
+          <button onclick="updatePrice('${data.id}')">
+            Update Price
+          </button>
+        </div>
+      `;
+    });
   });
 }
 
 /* =======================
-   ADD ITEM BY WEIGHT
+   ADD TO CART (WEIGHT SYSTEM)
 ======================= */
 window.addToCart = (id) => {
   const product = products.find(p => p.id === id);
@@ -75,7 +88,7 @@ window.addToCart = (id) => {
   const weight = parseFloat(input.value);
 
   if (!weight || weight <= 0) {
-    alert("Please enter valid weight (e.g. 0.3 kg)");
+    alert("Enter valid weight (e.g. 0.3 kg)");
     return;
   }
 
@@ -87,12 +100,12 @@ window.addToCart = (id) => {
     price
   });
 
-  input.value = ""; // reset input after add
+  input.value = "";
   renderCart();
 };
 
 /* =======================
-   CART RENDER
+   CART RENDER (FIXED FOR YOUR HTML)
 ======================= */
 function renderCart() {
   const cartUI = document.getElementById("cart-items");
@@ -115,7 +128,7 @@ function renderCart() {
   cart.forEach(item => {
     html += `
       <div class="cart-item">
-        ${item.name} (${item.weight} kg)
+        <span>${item.name} (${item.weight} kg)</span>
         <span>₱${item.price.toFixed(2)}</span>
       </div>
     `;
@@ -175,22 +188,18 @@ function showReceipt(items, name, total) {
   document.getElementById("receipt-items").innerHTML = html;
   document.getElementById("receipt-total").textContent = `₱${total.toFixed(2)}`;
 
-  document.getElementById("order-modal").style.display = "block";
+  document.getElementById("order-modal").style.display = "flex";
 }
 
 /* =======================
-   MODAL CONTROLS
+   MODALS
 ======================= */
 window.openOrderModal = () => {
-  document.getElementById("order-modal").style.display = "block";
+  document.getElementById("order-modal").style.display = "flex";
 };
 
 window.closeOrderModal = () => {
   document.getElementById("order-modal").style.display = "none";
-};
-
-window.closeSuccessModal = () => {
-  document.getElementById("success-modal").style.display = "none";
 };
 
 window.closeReceipt = () => {
@@ -198,7 +207,15 @@ window.closeReceipt = () => {
 };
 
 /* =======================
-   ADMIN PRICE UPDATE
+   ADMIN TOGGLE (FIXED)
+======================= */
+window.toggleAdmin = () => {
+  document.getElementById("kiosk-view").classList.toggle("hidden");
+  document.getElementById("admin-view").classList.toggle("hidden");
+};
+
+/* =======================
+   UPDATE PRICE
 ======================= */
 window.updatePrice = async (id) => {
   const price = document.getElementById("price-" + id).value;
@@ -209,7 +226,7 @@ window.updatePrice = async (id) => {
 };
 
 /* =======================
-   LOAD ORDERS
+   ORDERS
 ======================= */
 function loadOrders() {
   onSnapshot(collection(db, "orders"), (snapshot) => {
@@ -229,14 +246,6 @@ function loadOrders() {
     document.getElementById("orders").innerHTML = html;
   });
 }
-
-/* =======================
-   ADMIN TOGGLE (SAFE)
-======================= */
-window.toggleAdmin = () => {
-  document.getElementById("kiosk-view").classList.toggle("hidden");
-  document.getElementById("admin-view").classList.toggle("hidden");
-};
 
 /* =======================
    INIT
