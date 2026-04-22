@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
   getFirestore, collection, getDocs, addDoc, updateDoc,
-  deleteDoc, doc, onSnapshot, serverTimestamp, query, orderBy
+  deleteDoc, doc, onSnapshot, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ─── FIREBASE CONFIG ─────────────────────────────────────────
@@ -24,7 +24,7 @@ const db  = getFirestore(app);
 let products = [];
 let cart = {};
 
-// ─── SEED DEFAULT PRODUCTS ─────────────────────────────────────────
+// ─── DEFAULT PRODUCTS ─────────────────────────────────────────
 const DEFAULT_PRODUCTS = [
   { name: "Garlic", unit: "per kilo", price: 80, emoji: "🧄" },
   { name: "Onion", unit: "per kilo", price: 90, emoji: "🧅" },
@@ -38,6 +38,7 @@ const DEFAULT_PRODUCTS = [
   { name: "Ampalaya", unit: "per piece", price: 25, emoji: "🥒" },
 ];
 
+// ─── SEED PRODUCTS ─────────────────────────────────────────
 async function seedIfEmpty() {
   const snap = await getDocs(collection(db, "products"));
   if (snap.empty) {
@@ -52,12 +53,13 @@ function listenProducts() {
   onSnapshot(collection(db, "products"), (snap) => {
     products = snap.docs.map(d => ({ id: d.id, ...d.data() }))
       .sort((a, b) => a.name.localeCompare(b.name));
+
     renderProductGrid();
     renderAdminProducts();
   });
 }
 
-// ─── PRODUCT GRID (UPDATED TO KG INPUT) ─────────────────────────────────────────
+// ─── PRODUCT GRID (KG SYSTEM) ─────────────────────────────────────────
 function renderProductGrid() {
   const grid = document.getElementById("product-grid");
 
@@ -66,8 +68,7 @@ function renderProductGrid() {
     return;
   }
 
-  grid.innerHTML = products.map(p => {
-    return `
+  grid.innerHTML = products.map(p => `
     <div class="product-card">
       <div class="product-emoji">${p.emoji}</div>
       <div class="product-name">${p.name}</div>
@@ -83,19 +84,16 @@ function renderProductGrid() {
           id="kg-${p.id}"
           class="kg-input"
         />
-        <button 
-          class="add-cart-btn"
-          onclick="addKgToCart('${p.id}')"
-        >
+        <button class="add-cart-btn" onclick="addKgToCart('${p.id}')">
           Add to Cart
         </button>
       </div>
-    </div>`;
-  }).join('');
+    </div>
+  `).join('');
 }
 
-// ─── KG ADD TO CART (NEW CORE LOGIC) ─────────────────────────────────────────
-window.addKgToCart = function(id) {
+// ─── KG ADD TO CART ─────────────────────────────────────────
+function addKgToCart(id) {
   const input = document.getElementById(`kg-${id}`);
   const value = parseFloat(input.value);
 
@@ -105,7 +103,7 @@ window.addKgToCart = function(id) {
 
   input.value = "";
   updateCartDisplay();
-};
+}
 
 // ─── CART DISPLAY ─────────────────────────────────────────
 function updateCartDisplay() {
@@ -135,34 +133,35 @@ function updateCartDisplay() {
     total += sub;
 
     return `
-    <div class="cart-item">
-      <span class="cart-item-emoji">${p.emoji}</span>
-      <div class="cart-item-info">
-        <div class="cart-item-name">${p.name}</div>
-        <div class="cart-item-qty">${qty} kg × ₱${Number(p.price).toFixed(2)}</div>
+      <div class="cart-item">
+        <span class="cart-item-emoji">${p.emoji}</span>
+        <div class="cart-item-info">
+          <div class="cart-item-name">${p.name}</div>
+          <div class="cart-item-qty">${qty} kg × ₱${p.price}</div>
+        </div>
+        <span class="cart-item-price">₱${sub.toFixed(2)}</span>
+        <button class="cart-item-remove" onclick="removeFromCart('${id}')">✕</button>
       </div>
-      <span class="cart-item-price">₱${sub.toFixed(2)}</span>
-      <button class="cart-item-remove" onclick="removeFromCart('${id}')">✕</button>
-    </div>`;
+    `;
   }).join('');
 
   totalEl.textContent = `₱${total.toFixed(2)}`;
   orderBtn.disabled = false;
 }
 
-// ─── REMOVE / CLEAR ─────────────────────────────────────────
-window.removeFromCart = function(id) {
+// ─── CART ACTIONS ─────────────────────────────────────────
+function removeFromCart(id) {
   delete cart[id];
   updateCartDisplay();
-};
+}
 
-window.clearCart = function() {
+function clearCart() {
   cart = {};
   updateCartDisplay();
-};
+}
 
-// ─── ORDER SYSTEM (UNCHANGED) ─────────────────────────────────────────
-window.openOrderModal = function() {
+// ─── ORDER ─────────────────────────────────────────
+function openOrderModal() {
   const entries = Object.entries(cart);
   let total = 0;
 
@@ -172,25 +171,27 @@ window.openOrderModal = function() {
     total += sub;
 
     return `
-    <div class="receipt-item-row">
-      <span>${p.emoji} ${p.name} × ${qty}kg</span>
-      <span>₱${sub.toFixed(2)}</span>
-    </div>`;
+      <div class="receipt-item-row">
+        <span>${p.emoji} ${p.name} × ${qty}kg</span>
+        <span>₱${sub.toFixed(2)}</span>
+      </div>
+    `;
   }).join('');
 
   document.getElementById("receipt-total").textContent = `₱${total.toFixed(2)}`;
   document.getElementById("order-modal").style.display = "flex";
-};
+}
 
-window.closeOrderModal = function() {
+function closeOrderModal() {
   document.getElementById("order-modal").style.display = "none";
-};
+}
 
-window.confirmOrder = async function() {
+async function confirmOrder() {
   const name = document.getElementById("customer-name").value || "Walk-in";
   const entries = Object.entries(cart);
 
   let total = 0;
+
   const items = entries.map(([id, qty]) => {
     const p = products.find(x => x.id === id);
     const sub = p.price * qty;
@@ -215,7 +216,53 @@ window.confirmOrder = async function() {
   cart = {};
   updateCartDisplay();
   closeOrderModal();
-};
+}
+
+// ─── ADMIN ─────────────────────────────────────────
+function openAdminLogin() {
+  document.getElementById("admin-login-modal").style.display = "flex";
+}
+
+function closeAdminLogin() {
+  document.getElementById("admin-login-modal").style.display = "none";
+}
+
+function checkAdminLogin() {
+  const pass = document.getElementById("admin-password-input").value;
+
+  if (pass === ADMIN_PASSWORD) {
+    document.getElementById("admin-login-modal").style.display = "none";
+    document.getElementById("kiosk-view").style.display = "none";
+    document.getElementById("admin-view").style.display = "block";
+  } else {
+    document.getElementById("login-error").style.display = "block";
+  }
+}
+
+function exitAdmin() {
+  document.getElementById("admin-view").style.display = "none";
+  document.getElementById("kiosk-view").style.display = "block";
+}
+
+// (keep placeholders if needed)
+function switchTab() {}
+function openAddProduct() {}
+function saveProduct() {}
+function closeProductModal() {}
+
+// ─── GLOBAL EXPORTS (IMPORTANT FIX) ─────────────────────────────────────────
+window.openAdminLogin = openAdminLogin;
+window.checkAdminLogin = checkAdminLogin;
+window.closeAdminLogin = closeAdminLogin;
+window.exitAdmin = exitAdmin;
+
+window.openOrderModal = openOrderModal;
+window.closeOrderModal = closeOrderModal;
+window.confirmOrder = confirmOrder;
+
+window.addKgToCart = addKgToCart;
+window.removeFromCart = removeFromCart;
+window.clearCart = clearCart;
 
 // ─── BOOT ─────────────────────────────────────────
 (async () => {
