@@ -33,7 +33,7 @@ const db = getFirestore(app);
 let products = [];
 let cart = [];
 
-// ─── PRODUCTS ─────────────────────────
+// ─── PRODUCTS LISTENER ─────────────────────────
 function listenProducts() {
   onSnapshot(collection(db, "products"), (snap) => {
     products = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -42,7 +42,7 @@ function listenProducts() {
   });
 }
 
-// ─── PRODUCT GRID ─────────────────────────
+// ─── PRODUCT GRID (KIOSK) ─────────────────────────
 function renderProductGrid() {
   const grid = document.getElementById("product-grid");
 
@@ -97,7 +97,7 @@ function updateCart() {
       <div class="cart-item">
         <span>${p.emoji} ${p.name}</span>
         <span>${item.qty}kg</span>
-        <span>₱${sub}</span>
+        <span>₱${sub.toFixed(2)}</span>
       </div>
     `;
   }).join('');
@@ -105,7 +105,7 @@ function updateCart() {
   totalEl.innerText = "₱" + total.toFixed(2);
 }
 
-// ─── ADMIN LOGIN (FIXED ROBUST) ─────────────────────────
+// ─── ADMIN LOGIN ─────────────────────────
 window.openAdminLogin = function() {
   document.getElementById("admin-login-modal").style.display = "flex";
 };
@@ -148,23 +148,80 @@ window.switchTab = function(tab) {
   }
 };
 
-// ─── ADMIN PRODUCTS ─────────────────────────
+// ─── ADMIN PRODUCTS (UPDATED WITH EDIT/DELETE) ─────────────────────────
 function renderAdminProducts() {
   const el = document.getElementById("admin-product-list");
 
   el.innerHTML = products.map(p => `
     <div class="admin-product-row">
-      <div>${p.emoji}</div>
+      <div class="admin-product-emoji">${p.emoji}</div>
+
       <div class="admin-product-info">
-        <div>${p.name}</div>
-        <small>${p.unit}</small>
+        <div class="admin-product-name">${p.name}</div>
+        <div class="admin-product-unit">${p.unit}</div>
       </div>
-      <div>₱${p.price}</div>
+
+      <div class="admin-product-price">₱${p.price}</div>
+
+      <div class="admin-row-btns">
+        <button class="edit-btn" onclick="editProduct('${p.id}')">Edit</button>
+        <button class="delete-btn" onclick="deleteProduct('${p.id}')">Delete</button>
+      </div>
     </div>
   `).join('');
 }
 
-// ─── ORDERS LIST ─────────────────────────
+// ─── EDIT PRODUCT ─────────────────────────
+window.editProduct = function(id) {
+  const p = products.find(x => x.id === id);
+
+  document.getElementById("edit-product-id").value = id;
+  document.getElementById("product-name-input").value = p.name;
+  document.getElementById("product-unit-input").value = p.unit;
+  document.getElementById("product-price-input").value = p.price;
+  document.getElementById("product-emoji-input").value = p.emoji;
+
+  document.getElementById("product-modal").style.display = "flex";
+};
+
+// ─── DELETE PRODUCT ─────────────────────────
+window.deleteProduct = async function(id) {
+  if (!confirm("Delete this product?")) return;
+  await deleteDoc(doc(db, "products", id));
+};
+
+// ─── SAVE PRODUCT (CREATE + UPDATE) ─────────────────────────
+window.saveProduct = async function() {
+  const id = document.getElementById("edit-product-id").value;
+
+  const data = {
+    name: document.getElementById("product-name-input").value,
+    unit: document.getElementById("product-unit-input").value,
+    price: parseFloat(document.getElementById("product-price-input").value),
+    emoji: document.getElementById("product-emoji-input").value
+  };
+
+  if (id) {
+    await updateDoc(doc(db, "products", id), data);
+  } else {
+    await addDoc(collection(db, "products"), data);
+  }
+
+  closeProductModal();
+};
+
+// ─── PRODUCT MODAL CLOSE ─────────────────────────
+window.closeProductModal = function() {
+  document.getElementById("product-modal").style.display = "none";
+
+  document.getElementById("edit-product-id").value = "";
+  document.getElementById("product-name-input").value = "";
+  document.getElementById("product-unit-input").value = "";
+  document.getElementById("product-price-input").value = "";
+  document.getElementById("product-emoji-input").value = "";
+};
+
+// ─── ORDERS ─────────────────────────
 function listenOrders() {
   const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
 
@@ -195,11 +252,9 @@ function listenOrders() {
   });
 }
 
-// ─── VIEW FULL ORDER RECEIPT ─────────────────────────
+// ─── VIEW ORDER RECEIPT ─────────────────────────
 window.viewOrder = async function(id) {
-  const ref = doc(db, "orders", id);
   const snap = await getDocs(collection(db, "orders"));
-
   const orderDoc = snap.docs.find(d => d.id === id);
   const o = orderDoc.data();
 
@@ -215,14 +270,12 @@ window.viewOrder = async function(id) {
         Customer: ${o.customer || "Walk-in"}
       </div>
 
-      <div>
-        ${o.items.map(i => `
-          <div class="receipt-item-row">
-            <span>${i.emoji} ${i.name} × ${i.qty}kg</span>
-            <span>₱${i.subtotal}</span>
-          </div>
-        `).join('')}
-      </div>
+      ${o.items.map(i => `
+        <div class="receipt-item-row">
+          <span>${i.emoji} ${i.name} × ${i.qty}kg</span>
+          <span>₱${i.subtotal}</span>
+        </div>
+      `).join('')}
 
       <div class="receipt-total-row">
         <span>Total</span>
@@ -240,7 +293,7 @@ window.viewOrder = async function(id) {
 
 // ─── BOOT ─────────────────────────
 (async () => {
-  await getDocs(collection(db, "products")); // warm start
+  await getDocs(collection(db, "products"));
   listenProducts();
   listenOrders();
 })();
