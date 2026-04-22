@@ -13,7 +13,6 @@
 
 <body>
 
-<!-- ═══════════════════════════════════ KIOSK VIEW ═══════════════════════════════════ -->
 <div id="kiosk">
 
   <header class="kiosk-header">
@@ -30,7 +29,6 @@
 
   <div class="kiosk-body">
 
-    <!-- MENU -->
     <div class="menu-panel">
       <div class="section-label">📦 Available Items</div>
 
@@ -39,7 +37,6 @@
       </div>
     </div>
 
-    <!-- CART -->
     <div class="cart-panel">
       <div class="section-label">🛒 Your Basket</div>
 
@@ -69,36 +66,27 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════ RECEIPT MODAL ═══════════════════════════════════ -->
+<!-- RECEIPT -->
 <div id="receiptModal" class="modal-overlay" style="display:none">
   <div class="modal-box">
-
     <h2 class="modal-title">🧾 Receipt</h2>
-
     <div id="receipt"></div>
-
     <button class="confirm-btn" onclick="closeReceipt()">Close</button>
-
   </div>
 </div>
 
-<!-- ═══════════════════════════════════ ADMIN LOGIN ═══════════════════════════════════ -->
+<!-- ADMIN LOGIN -->
 <div id="admin-login-modal" class="modal-overlay" style="display:none">
   <div class="modal-box">
-
     <h2 class="modal-title">Admin Login</h2>
-
     <input type="password" id="admin-password-input" placeholder="Enter password" />
-
     <p id="login-error" style="color:red;display:none;">Wrong password</p>
-
     <button onclick="checkAdminLogin()">Login</button>
     <button onclick="closeAdminLogin()">Cancel</button>
-
   </div>
 </div>
 
-<!-- ═══════════════════════════════════ ADMIN VIEW ═══════════════════════════════════ -->
+<!-- ADMIN -->
 <div id="admin-view" style="display:none">
 
   <header class="kiosk-header">
@@ -117,22 +105,17 @@
 
     <div class="menu-panel">
       <div class="section-label">📦 Inventory</div>
-
       <div id="adminProducts"></div>
-
     </div>
 
     <div class="cart-panel">
       <div class="section-label">📋 Orders</div>
-
       <div id="orders"></div>
-
     </div>
 
   </div>
 </div>
 
-<!-- Firebase -->
 <script type="module" src="app.js"></script>
 
 </body>

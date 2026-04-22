@@ -71,6 +71,7 @@ function loadProducts() {
 ======================= */
 window.quickAdd = (id, weight) => {
   let p = products.find(x => x.id === id);
+  if (!p) return;
 
   cart.push({
     name: p.name,
@@ -86,7 +87,10 @@ window.quickAdd = (id, weight) => {
 ======================= */
 window.addWeighted = (id) => {
   let p = products.find(x => x.id === id);
-  let weight = parseFloat(document.getElementById("w-" + id).value);
+  if (!p) return;
+
+  let input = document.getElementById("w-" + id);
+  let weight = parseFloat(input.value);
 
   if (!weight || weight <= 0) {
     alert("Invalid weight");
@@ -99,6 +103,7 @@ window.addWeighted = (id) => {
     price: p.price * weight
   });
 
+  input.value = "";
   renderCart();
 };
 
@@ -118,17 +123,23 @@ function renderCart() {
     total += i.price;
   });
 
-  document.getElementById("cartItems").innerHTML = html;
-  document.getElementById("total").innerText = total.toFixed(2);
+  document.getElementById("cartItems").innerHTML = html || `
+    <div class="empty-cart">
+      <span>🥬</span>
+      <p>Add items to your basket</p>
+    </div>
+  `;
+
+  document.getElementById("total").innerText = "₱" + total.toFixed(2);
 }
 
 /* =======================
-   CHECKOUT (FIXED)
+   CHECKOUT
 ======================= */
 window.checkout = async () => {
   if (cart.length === 0) return alert("Cart is empty");
 
-  let snapshotCart = [...cart]; // IMPORTANT FIX
+  let snapshotCart = [...cart];
   let total = snapshotCart.reduce((a, b) => a + b.price, 0);
   let name = document.getElementById("customerName").value;
 
@@ -146,7 +157,7 @@ window.checkout = async () => {
 };
 
 /* =======================
-   RECEIPT (FIXED)
+   RECEIPT
 ======================= */
 function showReceipt(items, name, total) {
   let html = "";
@@ -161,11 +172,11 @@ function showReceipt(items, name, total) {
     <h3>Total: ₱${total.toFixed(2)}</h3>
   `;
 
-  document.getElementById("receiptModal").classList.remove("hidden");
+  document.getElementById("receiptModal").style.display = "block";
 }
 
 window.closeReceipt = () => {
-  document.getElementById("receiptModal").classList.add("hidden");
+  document.getElementById("receiptModal").style.display = "none";
 };
 
 /* =======================
@@ -206,7 +217,7 @@ function loadOrders() {
 ======================= */
 window.toggleAdmin = () => {
   document.getElementById("kiosk").classList.toggle("hidden");
-  document.getElementById("admin").classList.toggle("hidden");
+  document.getElementById("admin-view").classList.toggle("hidden");
 };
 
 /* =======================
