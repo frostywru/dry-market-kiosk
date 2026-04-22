@@ -1,3 +1,4 @@
+/* RESET */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -19,41 +20,26 @@ body {
 }
 
 /* GRID */
-#products,
-#adminProducts {
+#products, #adminProducts {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 10px;
   padding: 10px;
 }
 
-/* ITEM CARD */
+/* CARD */
 .item {
   background: white;
   padding: 12px;
   border-radius: 10px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
 }
 
-/* PRODUCT TITLE */
-.item h3 {
-  font-size: 16px;
-}
-
-/* PRICE TEXT */
-.item p {
-  font-size: 13px;
-  color: #444;
-}
-
-/* INPUT (WEIGHT SYSTEM) */
+/* INPUT */
 input {
   width: 100%;
   padding: 8px;
+  margin-top: 6px;
   border: 1px solid #ccc;
   border-radius: 6px;
 }
@@ -70,12 +56,7 @@ button {
   font-weight: bold;
 }
 
-/* HOVER */
-button:hover {
-  background: #388e3c;
-}
-
-/* QUICK BUTTONS (if still used somewhere) */
+/* QUICK BUTTONS */
 .quick-buttons {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -88,9 +69,7 @@ button:hover {
   font-size: 12px;
 }
 
-/* =========================
-   CART FIX (IMPORTANT)
-========================= */
+/* CART */
 .cart {
   background: white;
   padding: 12px;
@@ -99,62 +78,34 @@ button:hover {
   border-top: 2px solid #ddd;
 }
 
-/* CART ITEM STYLE (NEW JS OUTPUT FIX) */
-.cart-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 6px 0;
-  border-bottom: 1px solid #eee;
-  font-size: 14px;
-}
-
-/* EMPTY CART */
-.empty-cart {
-  text-align: center;
-  padding: 20px;
-  color: #777;
-}
-
-/* TOTAL */
-#cart-total {
-  font-weight: bold;
-  font-size: 18px;
-}
-
 /* MODAL */
-.modal-overlay {
+.modal {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
 
-/* MODAL BOX */
-.modal-box {
+.modal-content {
   background: white;
+  margin: 20% auto;
   padding: 20px;
-  width: 90%;
+  width: 85%;
   border-radius: 10px;
 }
 
-/* RECEIPT */
-#receipt p {
-  font-size: 14px;
-  margin: 4px 0;
+/* HIDDEN */
+.hidden {
+  display: none;
 }
 
-/* =========================
-   RESPONSIVE
-========================= */
+/* RESPONSIVE */
 @media (min-width: 768px) {
-  #products,
-  #adminProducts {
+  #products, #adminProducts {
     grid-template-columns: repeat(4, 1fr);
   }
 
-  .modal-box {
+  .modal-content {
     width: 40%;
+    margin: 10% auto;
   }
 }
