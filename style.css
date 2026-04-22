@@ -529,3 +529,40 @@ body {
   .admin-section { padding: 16px; }
   .product-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
 }
+
+.kg-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  width: 100%;
+}
+
+.kg-input {
+  width: 100%;
+  padding: 8px;
+  border: 2px solid #e5e0d6;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 700;
+  outline: none;
+}
+
+.kg-input:focus {
+  border-color: var(--green);
+}
+
+.add-cart-btn {
+  background: var(--green);
+  color: white;
+  border: none;
+  padding: 8px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.add-cart-btn:hover {
+  background: var(--green2);
+}
