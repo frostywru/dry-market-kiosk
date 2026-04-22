@@ -1,111 +1,208 @@
 /* RESET */
 * {
-  box-sizing: border-box;
   margin: 0;
   padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-  font-family: Arial;
-  background: #f5f5f5;
+  font-family: 'DM Sans', sans-serif;
+  background: #f0ede4;
+  color: #1c1c1c;
 }
 
 /* HEADER */
-.header {
-  background: #2e7d32;
+.kiosk-header {
+  background: #1a6b3c;
   color: white;
-  padding: 15px;
   display: flex;
   justify-content: space-between;
+  padding: 16px 24px;
+  align-items: center;
+}
+
+.header-left {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.store-name {
+  font-family: 'Bebas Neue', cursive;
+  font-size: 2rem;
+}
+
+.store-sub {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.admin-btn {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid white;
+  padding: 8px 14px;
+  color: white;
+  cursor: pointer;
+  border-radius: 6px;
 }
 
 /* LAYOUT */
-.container {
-  display: flex;
-  gap: 10px;
-  padding: 10px;
-}
-
-.products {
-  flex: 2;
-}
-
-.cart {
-  flex: 1;
-  background: white;
-  padding: 10px;
-  border-radius: 8px;
-}
-
-/* PRODUCT GRID */
-#product-grid {
+.kiosk-body {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
+  grid-template-columns: 1fr 320px;
+  min-height: 100vh;
 }
 
-/* PRODUCT CARD */
+/* PRODUCTS */
+.menu-panel {
+  padding: 20px;
+}
+
+.section-label {
+  font-family: 'Bebas Neue', cursive;
+  font-size: 1.4rem;
+  margin-bottom: 12px;
+  color: #1a6b3c;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
 .product-card {
   background: white;
-  padding: 10px;
-  border-radius: 8px;
+  padding: 14px;
+  border-radius: 12px;
   text-align: center;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
 }
 
-/* QTY */
-.qty-controls {
+.product-emoji {
+  font-size: 2rem;
+}
+
+.product-name {
+  font-weight: bold;
+}
+
+.product-price {
+  color: #1a6b3c;
+  font-family: 'Bebas Neue';
+  font-size: 1.3rem;
+}
+
+/* CART */
+.cart-panel {
+  background: white;
+  border-left: 1px solid #ddd;
   display: flex;
-  justify-content: center;
-  gap: 5px;
-  margin-top: 5px;
+  flex-direction: column;
 }
 
-.qty-controls button {
-  padding: 5px 10px;
-  cursor: pointer;
+.cart-items {
+  flex: 1;
+  padding: 12px;
 }
 
-/* BUTTON */
-button {
-  padding: 8px;
-  border: none;
-  background: #4caf50;
+.empty-cart {
+  text-align: center;
+  margin-top: 40px;
+  color: gray;
+}
+
+.cart-footer {
+  padding: 12px;
+  border-top: 1px solid #eee;
+}
+
+.cart-total-row {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'Bebas Neue';
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+}
+
+/* BUTTONS */
+.order-btn {
+  width: 100%;
+  padding: 12px;
+  background: #1a6b3c;
   color: white;
-  margin-top: 5px;
+  border: none;
+  cursor: pointer;
+  font-family: 'Bebas Neue';
+  font-size: 1.2rem;
+  margin-bottom: 6px;
+}
+
+.order-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.clear-btn {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  background: transparent;
   cursor: pointer;
 }
 
-button:disabled {
-  background: gray;
-}
-
-/* MODAL */
-.modal {
-  display: none;
+/* MODALS */
+.modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.6);
-  justify-content: center;
+  background: rgba(0,0,0,0.5);
+  display: flex;
   align-items: center;
+  justify-content: center;
 }
 
 .modal-box {
   background: white;
-  padding: 20px;
-  border-radius: 10px;
+  padding: 24px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 420px;
 }
 
-/* ADMIN */
-.tabs {
+.modal-title {
+  font-family: 'Bebas Neue';
+  font-size: 1.6rem;
+  margin-bottom: 12px;
+}
+
+.modal-actions {
   display: flex;
   gap: 10px;
+  margin-top: 12px;
+}
+
+.confirm-btn {
+  flex: 1;
+  background: #1a6b3c;
+  color: white;
+  border: none;
   padding: 10px;
+  cursor: pointer;
 }
 
-.tab-btn {
-  background: gray;
+.cancel-btn {
+  flex: 1;
+  background: #eee;
+  border: none;
+  cursor: pointer;
 }
 
-.tab-btn.active {
-  background: green;
+/* SUCCESS */
+.success-box {
+  text-align: center;
+}
+
+.success-icon {
+  font-size: 3rem;
+  margin-bottom: 10px;
 }
