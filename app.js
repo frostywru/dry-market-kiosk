@@ -13,7 +13,7 @@ import {
   orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// ─── FIREBASE CONFIG ─────────────────────────
+// ─── FIREBASE ─────────────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyCg78WsoPWQ--dTunQQNjhJGf7cpO6wpP4",
   authDomain: "dry-market-kiosk-f1e5e.firebaseapp.com",
@@ -33,24 +33,7 @@ const db = getFirestore(app);
 let products = [];
 let cart = [];
 
-// ─── DEFAULT PRODUCTS ─────────────────────────
-const DEFAULT_PRODUCTS = [
-  { name: "Garlic", unit: "per kilo", price: 80, emoji: "🧄" },
-  { name: "Onion", unit: "per kilo", price: 90, emoji: "🧅" },
-  { name: "Tomato", unit: "per kilo", price: 60, emoji: "🍅" }
-];
-
-// ─── SEED ─────────────────────────
-async function seedIfEmpty() {
-  const snap = await getDocs(collection(db, "products"));
-  if (snap.empty) {
-    for (const p of DEFAULT_PRODUCTS) {
-      await addDoc(collection(db, "products"), p);
-    }
-  }
-}
-
-// ─── LISTEN PRODUCTS ─────────────────────────
+// ─── PRODUCTS ─────────────────────────
 function listenProducts() {
   onSnapshot(collection(db, "products"), (snap) => {
     products = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -86,11 +69,8 @@ window.addKgToCart = function(id) {
   if (!qty || qty <= 0) return;
 
   const existing = cart.find(i => i.id === id);
-  if (existing) {
-    existing.qty += qty;
-  } else {
-    cart.push({ id, qty });
-  }
+  if (existing) existing.qty += qty;
+  else cart.push({ id, qty });
 
   input.value = "";
   updateCart();
@@ -118,7 +98,6 @@ function updateCart() {
         <span>${p.emoji} ${p.name}</span>
         <span>${item.qty}kg</span>
         <span>₱${sub}</span>
-        <button onclick="removeItem('${item.id}')">x</button>
       </div>
     `;
   }).join('');
@@ -126,17 +105,7 @@ function updateCart() {
   totalEl.innerText = "₱" + total.toFixed(2);
 }
 
-window.removeItem = function(id) {
-  cart = cart.filter(i => i.id !== id);
-  updateCart();
-};
-
-window.clearCart = function() {
-  cart = [];
-  updateCart();
-};
-
-// ─── ADMIN LOGIN ─────────────────────────
+// ─── ADMIN LOGIN (FIXED ROBUST) ─────────────────────────
 window.openAdminLogin = function() {
   document.getElementById("admin-login-modal").style.display = "flex";
 };
@@ -163,7 +132,7 @@ window.exitAdmin = function() {
   document.getElementById("kiosk-view").style.display = "block";
 };
 
-// ─── TABS FIX ─────────────────────────
+// ─── TABS ─────────────────────────
 window.switchTab = function(tab) {
   document.getElementById("tab-inventory").style.display = "none";
   document.getElementById("tab-orders").style.display = "none";
@@ -191,81 +160,87 @@ function renderAdminProducts() {
         <small>${p.unit}</small>
       </div>
       <div>₱${p.price}</div>
-
-      <button onclick="editProduct('${p.id}')">Edit</button>
-      <button onclick="deleteProduct('${p.id}')">Delete</button>
     </div>
   `).join('');
 }
 
-// ─── PRODUCT CRUD ─────────────────────────
-window.deleteProduct = async function(id) {
-  await deleteDoc(doc(db, "products", id));
-};
-
-window.editProduct = function(id) {
-  const p = products.find(x => x.id === id);
-
-  document.getElementById("edit-product-id").value = id;
-  document.getElementById("product-name-input").value = p.name;
-  document.getElementById("product-unit-input").value = p.unit;
-  document.getElementById("product-price-input").value = p.price;
-  document.getElementById("product-emoji-input").value = p.emoji;
-
-  document.getElementById("product-modal").style.display = "flex";
-};
-
-window.openAddProduct = function() {
-  document.getElementById("edit-product-id").value = "";
-  document.getElementById("product-modal").style.display = "flex";
-};
-
-window.closeProductModal = function() {
-  document.getElementById("product-modal").style.display = "none";
-};
-
-window.saveProduct = async function() {
-  const id = document.getElementById("edit-product-id").value;
-
-  const data = {
-    name: document.getElementById("product-name-input").value,
-    unit: document.getElementById("product-unit-input").value,
-    price: Number(document.getElementById("product-price-input").value),
-    emoji: document.getElementById("product-emoji-input").value
-  };
-
-  if (id) {
-    await updateDoc(doc(db, "products", id), data);
-  } else {
-    await addDoc(collection(db, "products"), data);
-  }
-
-  closeProductModal();
-};
-
-// ─── ORDERS ─────────────────────────
+// ─── ORDERS LIST ─────────────────────────
 function listenOrders() {
   const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
 
   onSnapshot(q, snap => {
     const el = document.getElementById("admin-orders-list");
 
+    if (snap.empty) {
+      el.innerHTML = `<div class="no-orders">No orders yet</div>`;
+      return;
+    }
+
     el.innerHTML = snap.docs.map(d => {
       const o = d.data();
+      const id = d.id;
 
       return `
-        <div class="order-card">
-          <div>${o.customer}</div>
-          <div>₱${o.total}</div>
+        <div class="order-card" onclick="viewOrder('${id}')">
+          <div class="order-card-header">
+            <div>
+              <div class="order-card-name">${o.customer || "Walk-in"}</div>
+              <div class="order-card-meta">Tap to view receipt</div>
+            </div>
+            <div class="order-card-total">₱${o.total}</div>
+          </div>
         </div>
       `;
     }).join('');
   });
 }
 
+// ─── VIEW FULL ORDER RECEIPT ─────────────────────────
+window.viewOrder = async function(id) {
+  const ref = doc(db, "orders", id);
+  const snap = await getDocs(collection(db, "orders"));
+
+  const orderDoc = snap.docs.find(d => d.id === id);
+  const o = orderDoc.data();
+
+  const modal = document.createElement("div");
+  modal.className = "modal-overlay";
+  modal.style.display = "flex";
+
+  modal.innerHTML = `
+    <div class="modal-box">
+      <h2 class="modal-title">🧾 Receipt</h2>
+
+      <div style="margin-bottom:10px;font-weight:700">
+        Customer: ${o.customer || "Walk-in"}
+      </div>
+
+      <div>
+        ${o.items.map(i => `
+          <div class="receipt-item-row">
+            <span>${i.emoji} ${i.name} × ${i.qty}kg</span>
+            <span>₱${i.subtotal}</span>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="receipt-total-row">
+        <span>Total</span>
+        <span>₱${o.total}</span>
+      </div>
+
+      <button class="confirm-btn" onclick="this.closest('.modal-overlay').remove()">
+        Close
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+};
+
 // ─── BOOT ─────────────────────────
 (async () => {
-  await seedIfEmpty();
+  await getDocs(collection(db, "products")); // warm start
   listenProducts();
   listenOrders();
 })();
