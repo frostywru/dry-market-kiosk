@@ -1,14 +1,10 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
-  getFirestore,
-  collection,
-  getDocs,
-  addDoc,
-  onSnapshot,
-  serverTimestamp
+  getFirestore, collection, getDocs, addDoc, updateDoc,
+  deleteDoc, doc, onSnapshot, serverTimestamp, query, orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// ───────────────────────── FIREBASE ─────────────────────────
+// ─── FIREBASE CONFIG ─────────────────────────────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyCg78WsoPWQ--dTunQQNjhJGf7cpO6wpP4",
   authDomain: "dry-market-kiosk-f1e5e.firebaseapp.com",
@@ -22,31 +18,26 @@ const firebaseConfig = {
 const ADMIN_PASSWORD = "7602";
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const db  = getFirestore(app);
 
-// ───────────────────────── STATE ─────────────────────────
+// ─── STATE ─────────────────────────────────────────
 let products = [];
 let cart = {};
 
-// ───────────────────────── DEFAULT DATA ─────────────────────────
+// ─── SEED DEFAULT PRODUCTS ─────────────────────────────────────────
 const DEFAULT_PRODUCTS = [
   { name: "Garlic", unit: "per kilo", price: 80, emoji: "🧄" },
   { name: "Onion", unit: "per kilo", price: 90, emoji: "🧅" },
   { name: "Tomato", unit: "per kilo", price: 60, emoji: "🍅" },
-  { name: "Potato", unit: "per kilo", price: 75, emoji: "🥔" }
+  { name: "Ginger", unit: "per kilo", price: 120, emoji: "🫚" },
+  { name: "Potato", unit: "per kilo", price: 75, emoji: "🥔" },
+  { name: "Carrot", unit: "per kilo", price: 70, emoji: "🥕" },
+  { name: "Cabbage", unit: "per head", price: 40, emoji: "🥬" },
+  { name: "Sitaw", unit: "per bundle", price: 20, emoji: "🫘" },
+  { name: "Kangkong", unit: "per bundle", price: 15, emoji: "🌿" },
+  { name: "Ampalaya", unit: "per piece", price: 25, emoji: "🥒" },
 ];
 
-// ───────────────────────── INIT SAFE START ─────────────────────────
-document.addEventListener("DOMContentLoaded", async () => {
-  console.log("✅ App initialized");
-
-  await seedIfEmpty();
-  listenProducts();
-
-  updateCartDisplay();
-});
-
-// ───────────────────────── FIREBASE SEED ─────────────────────────
 async function seedIfEmpty() {
   const snap = await getDocs(collection(db, "products"));
   if (snap.empty) {
@@ -56,129 +47,178 @@ async function seedIfEmpty() {
   }
 }
 
-// ───────────────────────── REALTIME PRODUCTS ─────────────────────────
+// ─── LISTENER ─────────────────────────────────────────
 function listenProducts() {
   onSnapshot(collection(db, "products"), (snap) => {
-    products = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    products = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => a.name.localeCompare(b.name));
     renderProductGrid();
+    renderAdminProducts();
   });
 }
 
-// ───────────────────────── PRODUCT UI ─────────────────────────
+// ─── PRODUCT GRID (UPDATED TO KG INPUT) ─────────────────────────────────────────
 function renderProductGrid() {
   const grid = document.getElementById("product-grid");
-  if (!grid) return;
 
   if (!products.length) {
-    grid.innerHTML = `<div class="loading-spinner">Loading products...</div>`;
+    grid.innerHTML = `<div class="loading-spinner">Loading products…</div>`;
     return;
   }
 
-  grid.innerHTML = products.map(p => `
+  grid.innerHTML = products.map(p => {
+    return `
     <div class="product-card">
       <div class="product-emoji">${p.emoji}</div>
       <div class="product-name">${p.name}</div>
       <div class="product-unit">${p.unit}</div>
-      <div class="product-price">₱${p.price}</div>
+      <div class="product-price">₱${Number(p.price).toFixed(2)}</div>
 
       <div class="kg-controls">
-        <input type="number" min="0" step="0.1" id="kg-${p.id}" class="kg-input" placeholder="kg">
-        <button class="add-cart-btn" onclick="addKgToCart('${p.id}')">Add</button>
+        <input 
+          type="number"
+          min="0"
+          step="0.1"
+          placeholder="kg"
+          id="kg-${p.id}"
+          class="kg-input"
+        />
+        <button 
+          class="add-cart-btn"
+          onclick="addKgToCart('${p.id}')"
+        >
+          Add to Cart
+        </button>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
-// ───────────────────────── CART ─────────────────────────
-function addKgToCart(id) {
+// ─── KG ADD TO CART (NEW CORE LOGIC) ─────────────────────────────────────────
+window.addKgToCart = function(id) {
   const input = document.getElementById(`kg-${id}`);
-  const value = parseFloat(input?.value);
+  const value = parseFloat(input.value);
 
   if (!value || value <= 0) return;
 
   cart[id] = (cart[id] || 0) + value;
+
   input.value = "";
-
   updateCartDisplay();
-}
+};
 
+// ─── CART DISPLAY ─────────────────────────────────────────
 function updateCartDisplay() {
-  const cartEl = document.getElementById("cart-items");
+  const cartItemsEl = document.getElementById("cart-items");
   const totalEl = document.getElementById("cart-total");
+  const orderBtn = document.getElementById("order-btn");
 
-  if (!cartEl || !totalEl) return;
+  const entries = Object.entries(cart);
+
+  if (!entries.length) {
+    cartItemsEl.innerHTML = `
+      <div class="empty-cart">
+        <span>🥬</span><p>Add items to your basket</p>
+      </div>`;
+    totalEl.textContent = "₱0.00";
+    orderBtn.disabled = true;
+    return;
+  }
 
   let total = 0;
 
-  const html = Object.entries(cart).map(([id, qty]) => {
+  cartItemsEl.innerHTML = entries.map(([id, qty]) => {
     const p = products.find(x => x.id === id);
-    if (!p) return "";
+    if (!p) return '';
 
     const sub = p.price * qty;
     total += sub;
 
     return `
-      <div class="cart-item">
-        <span>${p.emoji} ${p.name}</span>
-        <span>${qty} kg</span>
-        <span>₱${sub.toFixed(2)}</span>
-        <button onclick="removeFromCart('${id}')">✕</button>
+    <div class="cart-item">
+      <span class="cart-item-emoji">${p.emoji}</span>
+      <div class="cart-item-info">
+        <div class="cart-item-name">${p.name}</div>
+        <div class="cart-item-qty">${qty} kg × ₱${Number(p.price).toFixed(2)}</div>
       </div>
-    `;
-  }).join("");
+      <span class="cart-item-price">₱${sub.toFixed(2)}</span>
+      <button class="cart-item-remove" onclick="removeFromCart('${id}')">✕</button>
+    </div>`;
+  }).join('');
 
-  cartEl.innerHTML = html || `<div class="empty-cart">Empty cart</div>`;
   totalEl.textContent = `₱${total.toFixed(2)}`;
+  orderBtn.disabled = false;
 }
 
-// ───────────────────────── CART ACTIONS ─────────────────────────
-function removeFromCart(id) {
+// ─── REMOVE / CLEAR ─────────────────────────────────────────
+window.removeFromCart = function(id) {
   delete cart[id];
   updateCartDisplay();
-}
+};
 
-function clearCart() {
+window.clearCart = function() {
   cart = {};
   updateCartDisplay();
-}
+};
 
-// ───────────────────────── ADMIN FIX (IMPORTANT) ─────────────────────────
-function openAdminLogin() {
-  console.log("🔐 Admin clicked");
+// ─── ORDER SYSTEM (UNCHANGED) ─────────────────────────────────────────
+window.openOrderModal = function() {
+  const entries = Object.entries(cart);
+  let total = 0;
 
-  const modal = document.getElementById("admin-login-modal");
-  if (!modal) return console.error("Admin modal not found");
+  document.getElementById("receipt-items").innerHTML = entries.map(([id, qty]) => {
+    const p = products.find(x => x.id === id);
+    const sub = p.price * qty;
+    total += sub;
 
-  modal.style.display = "flex";
-}
+    return `
+    <div class="receipt-item-row">
+      <span>${p.emoji} ${p.name} × ${qty}kg</span>
+      <span>₱${sub.toFixed(2)}</span>
+    </div>`;
+  }).join('');
 
-function closeAdminLogin() {
-  document.getElementById("admin-login-modal").style.display = "none";
-}
+  document.getElementById("receipt-total").textContent = `₱${total.toFixed(2)}`;
+  document.getElementById("order-modal").style.display = "flex";
+};
 
-function checkAdminLogin() {
-  const pass = document.getElementById("admin-password-input").value;
+window.closeOrderModal = function() {
+  document.getElementById("order-modal").style.display = "none";
+};
 
-  if (pass === ADMIN_PASSWORD) {
-    document.getElementById("admin-login-modal").style.display = "none";
-    document.getElementById("kiosk-view").style.display = "none";
-    document.getElementById("admin-view").style.display = "block";
-  } else {
-    document.getElementById("login-error").style.display = "block";
-  }
-}
+window.confirmOrder = async function() {
+  const name = document.getElementById("customer-name").value || "Walk-in";
+  const entries = Object.entries(cart);
 
-function exitAdmin() {
-  document.getElementById("admin-view").style.display = "none";
-  document.getElementById("kiosk-view").style.display = "block";
-}
+  let total = 0;
+  const items = entries.map(([id, qty]) => {
+    const p = products.find(x => x.id === id);
+    const sub = p.price * qty;
+    total += sub;
 
-// ───────────────────────── GLOBAL EXPORTS (CRITICAL FIX) ─────────────────────────
-window.openAdminLogin = openAdminLogin;
-window.closeAdminLogin = closeAdminLogin;
-window.checkAdminLogin = checkAdminLogin;
-window.exitAdmin = exitAdmin;
+    return {
+      name: p.name,
+      emoji: p.emoji,
+      qty,
+      unitPrice: p.price,
+      subtotal: sub
+    };
+  });
 
-window.addKgToCart = addKgToCart;
-window.removeFromCart = removeFromCart;
-window.clearCart = clearCart;
+  await addDoc(collection(db, "orders"), {
+    customer: name,
+    items,
+    total,
+    createdAt: serverTimestamp()
+  });
+
+  cart = {};
+  updateCartDisplay();
+  closeOrderModal();
+};
+
+// ─── BOOT ─────────────────────────────────────────
+(async () => {
+  await seedIfEmpty();
+  listenProducts();
+})();
