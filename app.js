@@ -1,7 +1,16 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
-  getFirestore, collection, getDocs, addDoc,
-  onSnapshot, serverTimestamp
+  getFirestore,
+  collection,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  serverTimestamp,
+  query,
+  orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ─── FIREBASE CONFIG ─────────────────────────
@@ -22,15 +31,13 @@ const db = getFirestore(app);
 
 // ─── STATE ─────────────────────────
 let products = [];
-let cart = {};
+let cart = [];
 
 // ─── DEFAULT PRODUCTS ─────────────────────────
 const DEFAULT_PRODUCTS = [
   { name: "Garlic", unit: "per kilo", price: 80, emoji: "🧄" },
   { name: "Onion", unit: "per kilo", price: 90, emoji: "🧅" },
-  { name: "Tomato", unit: "per kilo", price: 60, emoji: "🍅" },
-  { name: "Ginger", unit: "per kilo", price: 120, emoji: "🫚" },
-  { name: "Potato", unit: "per kilo", price: 75, emoji: "🥔" },
+  { name: "Tomato", unit: "per kilo", price: 60, emoji: "🍅" }
 ];
 
 // ─── SEED ─────────────────────────
@@ -43,12 +50,10 @@ async function seedIfEmpty() {
   }
 }
 
-// ─── PRODUCTS LISTENER ─────────────────────────
+// ─── LISTEN PRODUCTS ─────────────────────────
 function listenProducts() {
   onSnapshot(collection(db, "products"), (snap) => {
-    products = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-
+    products = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderProductGrid();
     renderAdminProducts();
   });
@@ -58,20 +63,15 @@ function listenProducts() {
 function renderProductGrid() {
   const grid = document.getElementById("product-grid");
 
-  if (!products.length) {
-    grid.innerHTML = `<div class="loading-spinner">Loading products…</div>`;
-    return;
-  }
-
   grid.innerHTML = products.map(p => `
     <div class="product-card">
       <div class="product-emoji">${p.emoji}</div>
       <div class="product-name">${p.name}</div>
       <div class="product-unit">${p.unit}</div>
-      <div class="product-price">₱${Number(p.price).toFixed(2)}</div>
+      <div class="product-price">₱${p.price}</div>
 
       <div class="kg-controls">
-        <input type="number" min="0" step="0.1" id="kg-${p.id}" class="kg-input" placeholder="kg"/>
+        <input type="number" id="kg-${p.id}" class="kg-input" placeholder="kg" step="0.1">
         <button class="add-cart-btn" onclick="addKgToCart('${p.id}')">Add</button>
       </div>
     </div>
@@ -81,157 +81,191 @@ function renderProductGrid() {
 // ─── CART ─────────────────────────
 window.addKgToCart = function(id) {
   const input = document.getElementById(`kg-${id}`);
-  const value = parseFloat(input.value);
+  const qty = parseFloat(input.value);
 
-  if (!value || value <= 0) return;
+  if (!qty || qty <= 0) return;
 
-  cart[id] = (cart[id] || 0) + value;
+  const existing = cart.find(i => i.id === id);
+  if (existing) {
+    existing.qty += qty;
+  } else {
+    cart.push({ id, qty });
+  }
+
   input.value = "";
-  updateCartDisplay();
+  updateCart();
 };
 
-function updateCartDisplay() {
-  const cartItemsEl = document.getElementById("cart-items");
+function updateCart() {
+  const el = document.getElementById("cart-items");
   const totalEl = document.getElementById("cart-total");
-  const orderBtn = document.getElementById("order-btn");
 
-  const entries = Object.entries(cart);
-
-  if (!entries.length) {
-    cartItemsEl.innerHTML = `<div class="empty-cart"><span>🥬</span><p>Add items</p></div>`;
-    totalEl.textContent = "₱0.00";
-    orderBtn.disabled = true;
+  if (!cart.length) {
+    el.innerHTML = `<div class="empty-cart">Empty</div>`;
+    totalEl.innerText = "₱0.00";
     return;
   }
 
   let total = 0;
 
-  cartItemsEl.innerHTML = entries.map(([id, qty]) => {
-    const p = products.find(x => x.id === id);
-    const sub = p.price * qty;
+  el.innerHTML = cart.map(item => {
+    const p = products.find(x => x.id === item.id);
+    const sub = p.price * item.qty;
     total += sub;
 
     return `
       <div class="cart-item">
-        <span>${p.emoji}</span>
-        <div class="cart-item-info">
-          <div>${p.name}</div>
-          <small>${qty} kg</small>
-        </div>
-        <div>₱${sub.toFixed(2)}</div>
-        <button onclick="removeFromCart('${id}')">✕</button>
+        <span>${p.emoji} ${p.name}</span>
+        <span>${item.qty}kg</span>
+        <span>₱${sub}</span>
+        <button onclick="removeItem('${item.id}')">x</button>
       </div>
     `;
   }).join('');
 
-  totalEl.textContent = `₱${total.toFixed(2)}`;
-  orderBtn.disabled = false;
+  totalEl.innerText = "₱" + total.toFixed(2);
 }
 
-window.removeFromCart = (id) => {
-  delete cart[id];
-  updateCartDisplay();
+window.removeItem = function(id) {
+  cart = cart.filter(i => i.id !== id);
+  updateCart();
 };
 
-window.clearCart = () => {
-  cart = {};
-  updateCartDisplay();
+window.clearCart = function() {
+  cart = [];
+  updateCart();
 };
 
-// ─── ORDER ─────────────────────────
-window.openOrderModal = () => {
-  document.getElementById("order-modal").style.display = "flex";
-};
-
-window.closeOrderModal = () => {
-  document.getElementById("order-modal").style.display = "none";
-};
-
-window.confirmOrder = async () => {
-  await addDoc(collection(db, "orders"), {
-    items: cart,
-    createdAt: serverTimestamp()
-  });
-
-  cart = {};
-  updateCartDisplay();
-  closeOrderModal();
-};
-
-// ─────────────────────────────────────────
-// ✅ ADMIN FIX (THIS FIXES YOUR ISSUE)
-// ─────────────────────────────────────────
-
-// OPEN LOGIN
-window.openAdminLogin = function () {
+// ─── ADMIN LOGIN ─────────────────────────
+window.openAdminLogin = function() {
   document.getElementById("admin-login-modal").style.display = "flex";
 };
 
-// CLOSE LOGIN
-window.closeAdminLogin = function () {
+window.closeAdminLogin = function() {
   document.getElementById("admin-login-modal").style.display = "none";
 };
 
-// CHECK PASSWORD
-window.checkAdminLogin = function () {
-  const input = document.getElementById("admin-password-input").value;
+window.checkAdminLogin = function() {
+  const pass = document.getElementById("admin-password-input").value;
 
-  if (input === ADMIN_PASSWORD) {
+  if (pass === ADMIN_PASSWORD) {
     closeAdminLogin();
-
     document.getElementById("kiosk-view").style.display = "none";
     document.getElementById("admin-view").style.display = "block";
-
     switchTab("inventory");
   } else {
     document.getElementById("login-error").style.display = "block";
   }
 };
 
-// EXIT ADMIN
-window.exitAdmin = function () {
+window.exitAdmin = function() {
   document.getElementById("admin-view").style.display = "none";
   document.getElementById("kiosk-view").style.display = "block";
 };
 
-// SWITCH TAB (FIX MOBILE ISSUE)
-window.switchTab = function (tab) {
-  document.querySelectorAll(".tab-btn")
-    .forEach(b => b.classList.remove("active"));
+// ─── TABS FIX ─────────────────────────
+window.switchTab = function(tab) {
+  document.getElementById("tab-inventory").style.display = "none";
+  document.getElementById("tab-orders").style.display = "none";
 
-  document.querySelectorAll(".admin-section")
-    .forEach(s => s.style.display = "none");
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
 
   if (tab === "inventory") {
-    document.querySelectorAll(".tab-btn")[0].classList.add("active");
     document.getElementById("tab-inventory").style.display = "block";
-  }
-
-  if (tab === "orders") {
-    document.querySelectorAll(".tab-btn")[1].classList.add("active");
+    document.querySelectorAll(".tab-btn")[0].classList.add("active");
+  } else {
     document.getElementById("tab-orders").style.display = "block";
+    document.querySelectorAll(".tab-btn")[1].classList.add("active");
   }
 };
 
-// ─── ADMIN RENDER (BASIC) ─────────────────────────
+// ─── ADMIN PRODUCTS ─────────────────────────
 function renderAdminProducts() {
   const el = document.getElementById("admin-product-list");
-  if (!el) return;
 
   el.innerHTML = products.map(p => `
     <div class="admin-product-row">
       <div>${p.emoji}</div>
-      <div>
-        <b>${p.name}</b><br>
+      <div class="admin-product-info">
+        <div>${p.name}</div>
         <small>${p.unit}</small>
       </div>
       <div>₱${p.price}</div>
+
+      <button onclick="editProduct('${p.id}')">Edit</button>
+      <button onclick="deleteProduct('${p.id}')">Delete</button>
     </div>
   `).join('');
+}
+
+// ─── PRODUCT CRUD ─────────────────────────
+window.deleteProduct = async function(id) {
+  await deleteDoc(doc(db, "products", id));
+};
+
+window.editProduct = function(id) {
+  const p = products.find(x => x.id === id);
+
+  document.getElementById("edit-product-id").value = id;
+  document.getElementById("product-name-input").value = p.name;
+  document.getElementById("product-unit-input").value = p.unit;
+  document.getElementById("product-price-input").value = p.price;
+  document.getElementById("product-emoji-input").value = p.emoji;
+
+  document.getElementById("product-modal").style.display = "flex";
+};
+
+window.openAddProduct = function() {
+  document.getElementById("edit-product-id").value = "";
+  document.getElementById("product-modal").style.display = "flex";
+};
+
+window.closeProductModal = function() {
+  document.getElementById("product-modal").style.display = "none";
+};
+
+window.saveProduct = async function() {
+  const id = document.getElementById("edit-product-id").value;
+
+  const data = {
+    name: document.getElementById("product-name-input").value,
+    unit: document.getElementById("product-unit-input").value,
+    price: Number(document.getElementById("product-price-input").value),
+    emoji: document.getElementById("product-emoji-input").value
+  };
+
+  if (id) {
+    await updateDoc(doc(db, "products", id), data);
+  } else {
+    await addDoc(collection(db, "products"), data);
+  }
+
+  closeProductModal();
+};
+
+// ─── ORDERS ─────────────────────────
+function listenOrders() {
+  const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+
+  onSnapshot(q, snap => {
+    const el = document.getElementById("admin-orders-list");
+
+    el.innerHTML = snap.docs.map(d => {
+      const o = d.data();
+
+      return `
+        <div class="order-card">
+          <div>${o.customer}</div>
+          <div>₱${o.total}</div>
+        </div>
+      `;
+    }).join('');
+  });
 }
 
 // ─── BOOT ─────────────────────────
 (async () => {
   await seedIfEmpty();
   listenProducts();
+  listenOrders();
 })();
