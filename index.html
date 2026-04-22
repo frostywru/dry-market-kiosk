@@ -4,13 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>M&L – Dry Market</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
 
-<!-- ═══════════════════════════════════ KIOSK VIEW ═══════════════════════════════════ -->
+<!-- ═════════════════════════════ KIOSK VIEW ═════════════════════════════ -->
 <div id="kiosk-view">
 
   <header class="kiosk-header">
@@ -26,32 +29,38 @@
 
   <div class="kiosk-body">
 
-    <!-- MENU PANEL -->
+    <!-- MENU -->
     <div class="menu-panel">
       <div class="section-label">📦 Available Items</div>
+
+      <!-- PRODUCT GRID (JS injects KG UI here) -->
       <div id="product-grid" class="product-grid">
-        <!-- Products injected by JS -->
         <div class="loading-spinner">Loading products…</div>
       </div>
+
     </div>
 
-    <!-- CART PANEL -->
+    <!-- CART -->
     <div class="cart-panel">
       <div class="section-label">🛒 Your Basket</div>
+
       <div id="cart-items" class="cart-items">
         <div class="empty-cart">
           <span>🥬</span>
           <p>Add items to your basket</p>
         </div>
       </div>
+
       <div class="cart-footer">
         <div class="cart-total-row">
           <span>TOTAL</span>
           <span id="cart-total">₱0.00</span>
         </div>
+
         <button class="order-btn" id="order-btn" onclick="openOrderModal()" disabled>
           Place Order
         </button>
+
         <button class="clear-btn" onclick="clearCart()">Clear Basket</button>
       </div>
     </div>
@@ -59,27 +68,32 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════ ORDER MODAL ═══════════════════════════════════ -->
+<!-- ═════════════════════════════ ORDER MODAL ═════════════════════════════ -->
 <div id="order-modal" class="modal-overlay" style="display:none">
   <div class="modal-box">
     <h2 class="modal-title">🧾 Order Summary</h2>
+
     <div id="receipt-items" class="receipt-items"></div>
+
     <div class="receipt-total-row">
       <span>TOTAL DUE</span>
       <span id="receipt-total"></span>
     </div>
+
     <div class="receipt-name-row">
-      <label for="customer-name">Customer Name <span class="optional">(optional)</span></label>
-      <input id="customer-name" type="text" placeholder="e.g. Juan dela Cruz" maxlength="50" />
+      <label>Customer Name <span class="optional">(optional)</span></label>
+      <input id="customer-name" type="text" placeholder="Juan dela Cruz" />
     </div>
+
     <div class="modal-actions">
       <button class="confirm-btn" onclick="confirmOrder()">✅ Confirm Order</button>
       <button class="cancel-btn" onclick="closeOrderModal()">✖ Cancel</button>
     </div>
+
   </div>
 </div>
 
-<!-- ═══════════════════════════════════ SUCCESS MODAL ═══════════════════════════════════ -->
+<!-- ═════════════════════════════ SUCCESS MODAL ═════════════════════════════ -->
 <div id="success-modal" class="modal-overlay" style="display:none">
   <div class="modal-box success-box">
     <div class="success-icon">✅</div>
@@ -89,15 +103,18 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════ ADMIN LOGIN ═══════════════════════════════════ -->
+<!-- ═════════════════════════════ ADMIN LOGIN ═════════════════════════════ -->
 <div id="admin-login-modal" class="modal-overlay" style="display:none">
   <div class="modal-box">
     <h2 class="modal-title">🔒 Admin Access</h2>
+
     <div class="receipt-name-row">
       <label>Password</label>
-      <input id="admin-password-input" type="password" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')checkAdminLogin()" />
+      <input id="admin-password-input" type="password" placeholder="Enter password" />
     </div>
-    <p id="login-error" style="color:#e74c3c;font-size:0.85rem;margin-top:6px;display:none">Wrong password.</p>
+
+    <p id="login-error" style="display:none;color:red">Wrong password</p>
+
     <div class="modal-actions">
       <button class="confirm-btn" onclick="checkAdminLogin()">Enter</button>
       <button class="cancel-btn" onclick="closeAdminLogin()">Cancel</button>
@@ -105,7 +122,7 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════ ADMIN PANEL ═══════════════════════════════════ -->
+<!-- ═════════════════════════════ ADMIN VIEW ═════════════════════════════ -->
 <div id="admin-view" style="display:none">
 
   <header class="admin-header">
@@ -116,68 +133,67 @@
         <p class="store-sub">Manage Inventory & Orders</p>
       </div>
     </div>
-    <button class="admin-btn" onclick="exitAdmin()">← Back to Kiosk</button>
+    <button class="admin-btn" onclick="exitAdmin()">← Back</button>
   </header>
 
   <div class="admin-tabs">
     <button class="tab-btn active" onclick="switchTab('inventory')">📦 Inventory</button>
-    <button class="tab-btn" onclick="switchTab('orders')">📋 Past Orders</button>
+    <button class="tab-btn" onclick="switchTab('orders')">📋 Orders</button>
   </div>
 
-  <!-- INVENTORY TAB -->
   <div id="tab-inventory" class="admin-section">
     <div class="admin-section-header">
       <h3>Products</h3>
-      <button class="add-product-btn" onclick="openAddProduct()">+ Add Product</button>
+      <button class="add-product-btn" onclick="openAddProduct()">+ Add</button>
     </div>
-    <div id="admin-product-list" class="admin-product-list">
-      <div class="loading-spinner">Loading…</div>
-    </div>
+
+    <div id="admin-product-list" class="admin-product-list"></div>
   </div>
 
-  <!-- ORDERS TAB -->
   <div id="tab-orders" class="admin-section" style="display:none">
-    <div class="admin-section-header">
-      <h3>Past Orders</h3>
-      <span id="orders-count" class="orders-badge"></span>
-    </div>
-    <div id="admin-orders-list" class="admin-orders-list">
-      <div class="loading-spinner">Loading…</div>
-    </div>
+    <div id="admin-orders-list"></div>
   </div>
 
 </div>
 
-<!-- ═══════════════════════════════════ ADD/EDIT PRODUCT MODAL ═══════════════════════════════════ -->
+<!-- ═════════════════════════════ PRODUCT MODAL ═════════════════════════════ -->
 <div id="product-modal" class="modal-overlay" style="display:none">
   <div class="modal-box">
-    <h2 class="modal-title" id="product-modal-title">Add Product</h2>
-    <input type="hidden" id="edit-product-id" />
-    <div class="form-group">
-      <label>Product Name</label>
-      <input id="product-name-input" type="text" placeholder="e.g. Garlic" maxlength="40" />
-    </div>
-    <div class="form-group">
-      <label>Unit Label</label>
-      <input id="product-unit-input" type="text" placeholder="e.g. per kilo, per bundle" maxlength="20" />
-    </div>
-    <div class="form-group">
-      <label>Price (₱)</label>
-      <input id="product-price-input" type="number" placeholder="e.g. 80" min="0" step="0.01" />
-    </div>
-    <div class="form-group">
-      <label>Emoji Icon</label>
-      <input id="product-emoji-input" type="text" placeholder="e.g. 🧄" maxlength="4" />
-    </div>
-    <p id="product-form-error" style="color:#e74c3c;font-size:0.85rem;display:none">Please fill all fields.</p>
+
+    <h2 class="modal-title">Product</h2>
+
+    <input type="hidden" id="edit-product-id"/>
+
+    <input id="product-name-input" placeholder="Name"/>
+    <input id="product-unit-input" placeholder="Unit"/>
+    <input id="product-price-input" type="number" placeholder="Price"/>
+    <input id="product-emoji-input" placeholder="Emoji"/>
+
     <div class="modal-actions">
       <button class="confirm-btn" onclick="saveProduct()">Save</button>
       <button class="cancel-btn" onclick="closeProductModal()">Cancel</button>
     </div>
+
   </div>
 </div>
 
-<!-- Firebase SDK -->
+<!-- ═════════════════════════════ KG TEMPLATE (USED BY JS) ═════════════════════════════ -->
+<!-- JS will inject this structure into product-grid -->
+
+<!-- Example structure (NOT static, just reference):
+<div class="product-card">
+  <div class="product-emoji">🧄</div>
+  <div class="product-name">Garlic</div>
+  <div class="product-unit">per kilo</div>
+  <div class="product-price">₱80.00</div>
+
+  <div class="kg-controls">
+    <input type="number" class="kg-input" placeholder="kg" step="0.1" min="0.1">
+    <button class="add-cart-btn">Add to Cart</button>
+  </div>
+</div>
+-->
+
 <script type="module" src="app.js"></script>
 </body>
 </html>
