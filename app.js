@@ -1,8 +1,3 @@
-// ╔══════════════════════════════════════════════════════════╗
-// ║          TINDAHAN NI ALING NENA — app.js                ║
-// ║  Firebase Firestore + Kiosk Logic                       ║
-// ╚══════════════════════════════════════════════════════════╝
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
   getFirestore, collection, getDocs, addDoc, updateDoc,
@@ -21,7 +16,7 @@ const firebaseConfig = {
 };
 // ─────────────────────────────────────────────────────────────────────────────
 
-const ADMIN_PASSWORD = "admin1234"; // ← CHANGE THIS
+const ADMIN_PASSWORD = "7602"; // ← CHANGE THIS
 
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
